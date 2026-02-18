@@ -1,0 +1,16 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "Spring Boot: Run with Maven Wrapper",
+      "cwd": "${workspaceFolder}/flavorhub",
+      "console": "integratedTerminal",
+      "program": "./mvnw",
+      "args": ["spring-boot:run"],
+      "env": {},
+      "stopAtEntry": false
+    }
+  ]
+}
