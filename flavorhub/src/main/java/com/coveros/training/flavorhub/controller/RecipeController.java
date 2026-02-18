@@ -82,4 +82,17 @@ public class RecipeController {
         recipeService.deleteRecipe(id);
         return ResponseEntity.noContent().build();
     }
+
+    /**
+     * Get the Recipe of the Day
+     * @return the selected Recipe
+     */
+    @GetMapping("/recipe-of-the-day")
+    public ResponseEntity<Recipe> getRecipeOfTheDay() {
+        Recipe recipe = recipeService.getRecipeOfTheDay();
+        if (recipe == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(recipe);
+    }
 }

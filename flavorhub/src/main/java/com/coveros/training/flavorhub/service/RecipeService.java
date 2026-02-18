@@ -48,6 +48,18 @@ public class RecipeService {
     }
     
     /**
+     * Selects a Recipe of the Day using a deterministic algorithm based on the current date.
+     * @return the selected Recipe, or null if no recipes exist
+     */
+    @Transactional(readOnly = true)
+    public Recipe getRecipeOfTheDay() {
+        List<Recipe> allRecipes = recipeRepository.findAll();
+        if (allRecipes.isEmpty()) return null;
+        int dayOfYear = java.time.LocalDate.now().getDayOfYear();
+        int idx = dayOfYear % allRecipes.size();
+        return allRecipes.get(idx);
+    }
+    /**
      * Find recipes that can be made based on available ingredients in the pantry
      * NOTE: This method is intentionally left incomplete for workshop participants
      * Participants will use GitHub Copilot to implement this recommendation logic

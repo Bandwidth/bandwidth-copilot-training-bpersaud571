@@ -194,6 +194,66 @@
                 <h2>Welcome to the FlavorHub Workshop!</h2>
                 <p>Learn to use GitHub Copilot by building features for this recipe recommendation application</p>
             </div>
+
+            <!-- Recipe of the Day Feature -->
+            <div class="rotday-section" style="max-width: 600px; margin: 0 auto 36px auto;">
+                <div id="rotday-card" class="feature-card" style="border-left: 5px solid #ffc107; background: linear-gradient(120deg, #fffbe6 80%, #e0e7ff 100%);">
+                    <h3 style="color: #b38600; margin-bottom: 10px;">🌟 Recipe of the Day</h3>
+                    <div id="rotday-content" style="min-height: 60px;">
+                        <div style="color:#aaa; text-align:center;">Loading...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Search Feature -->
+                    <script>
+                    // Global escapeHtml utility for all scripts
+                    function escapeHtml(str) {
+                        return String(str).replace(/[&<>"']/g, function(m) {
+                            return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'})[m];
+                        });
+                    }
+                    </script>
+                    <script>
+                    // Recipe of the Day JS
+                    (function() {
+                        const rotdayContent = document.getElementById('rotday-content');
+                        fetch('/api/recipes/recipe-of-the-day')
+                            .then(r => r.ok ? r.json() : null)
+                            .then(recipe => {
+                                if (!recipe) {
+                                    rotdayContent.innerHTML = '<div style="color:#dc3545; text-align:center;">No recipe available today.</div>';
+                                    return;
+                                }
+                                rotdayContent.innerHTML = `
+                                    <div style="display:flex; flex-direction:column; align-items:center;">
+                                        <h4 style="color:#4b2991; margin-bottom:6px; font-size:1.2em;">${escapeHtml(recipe.name)}</h4>
+                                        <span style="color:#667eea; font-size:0.98em; margin-bottom:8px;">${escapeHtml(recipe.cuisineType || 'Cuisine Unknown')}</span>
+                                        <p style="color:#555; margin-bottom:8px; text-align:center;">${escapeHtml(recipe.description || 'No description provided.')}</p>
+                                        <div style="display:flex; gap:16px; margin-bottom:8px;">
+                                            <span style="background:#e0e7ff; color:#4b2991; border-radius:5px; padding:3px 10px; font-size:0.95em;">Difficulty: ${escapeHtml(recipe.difficultyLevel || 'N/A')}</span>
+                                            <span style="background:#f8f9fa; color:#764ba2; border-radius:5px; padding:3px 10px; font-size:0.95em;">Serves: ${recipe.servings || '?'}</span>
+                                        </div>
+                                        <button id="rotday-view-btn" style="margin-top:8px; background:#667eea; color:white; border:none; border-radius:6px; padding:7px 18px; font-size:1em; cursor:pointer; transition:background 0.18s;">View Recipe</button>
+                                    </div>
+                                `;
+                                document.getElementById('rotday-view-btn').onclick = function() {
+                                    window.location.href = '/recipes?id=' + encodeURIComponent(recipe.id);
+                                };
+                            })
+                            .catch(() => {
+                                rotdayContent.innerHTML = '<div style="color:#dc3545; text-align:center;">Failed to load recipe.</div>';
+                            });
+                    })();
+                    </script>
+            <div class="search-section" style="max-width: 500px; margin: 0 auto 36px auto;">
+                <label for="recipe-search" style="font-weight: 600; color: #4b2991; display: block; margin-bottom: 8px;">Search Recipes</label>
+                <div style="position: relative;">
+                    <input id="recipe-search" type="text" placeholder="Type a recipe name..." autocomplete="off" aria-autocomplete="list" aria-controls="autocomplete-list" aria-expanded="false" style="width: 100%; padding: 14px 16px; border: 1.5px solid #667eea; border-radius: 8px; font-size: 1.1em; outline: none; transition: border-color 0.2s;" />
+                    <ul id="autocomplete-list" role="listbox" style="list-style: none; margin: 0; padding: 0; position: absolute; top: 110%; left: 0; right: 0; background: #fff; border: 1px solid #e0e7ff; border-top: none; border-radius: 0 0 8px 8px; box-shadow: 0 4px 18px rgba(102, 126, 234, 0.08); z-index: 10; display: none;"></ul>
+                </div>
+            </div>
+            <div id="search-results" style="margin: 0 auto 36px auto; max-width: 900px;"></div>
             
             <div class="features">
                 <div class="feature-card">
@@ -269,6 +329,189 @@
         <footer>
             <p>Built with Spring Boot | Part of the GitHub Copilot Workshop</p>
             <p>Access H2 Console at: <a href="/h2-console" target="_blank">/h2-console</a></p>
+            <script>
+            // Improved Interactive Search Feature JS
+            (function() {
+                const searchInput = document.getElementById('recipe-search');
+                const autocompleteList = document.getElementById('autocomplete-list');
+                const resultsContainer = document.getElementById('search-results');
+                let debounceTimeout = null;
+                let suggestions = [];
+                let selectedIndex = -1;
+                let lastInputValue = '';
+
+                function clearAutocomplete() {
+                    autocompleteList.innerHTML = '';
+                    autocompleteList.style.display = 'none';
+                    searchInput.setAttribute('aria-expanded', 'false');
+                    suggestions = [];
+                    selectedIndex = -1;
+                }
+
+                function showAutocomplete(items) {
+                    if (!items.length) {
+                        clearAutocomplete();
+                        return;
+                    }
+                    autocompleteList.innerHTML = '';
+                    items.forEach((item, idx) => {
+                        const li = document.createElement('li');
+                        li.textContent = item.name;
+                        li.setAttribute('role', 'option');
+                        li.setAttribute('tabindex', '-1');
+                        li.className = 'autocomplete-item';
+                        li.style.padding = '10px 16px';
+                        li.style.cursor = 'pointer';
+                        li.style.borderBottom = idx < items.length - 1 ? '1px solid #f0f0f0' : 'none';
+                        li.setAttribute('aria-selected', idx === selectedIndex ? 'true' : 'false');
+                        li.addEventListener('mousedown', (e) => { e.preventDefault(); selectSuggestion(idx); });
+                        li.addEventListener('mouseenter', () => highlightSuggestion(idx));
+                        autocompleteList.appendChild(li);
+                    });
+                    highlightSuggestion(selectedIndex >= 0 ? selectedIndex : -1);
+                    autocompleteList.style.display = 'block';
+                    searchInput.setAttribute('aria-expanded', 'true');
+                }
+
+                function highlightSuggestion(idx) {
+                    Array.from(autocompleteList.children).forEach((li, i) => {
+                        li.style.background = i === idx ? '#e0e7ff' : '#fff';
+                        li.setAttribute('aria-selected', i === idx ? 'true' : 'false');
+                    });
+                    selectedIndex = idx;
+                }
+
+                function selectSuggestion(idx) {
+                    if (suggestions[idx]) {
+                        searchInput.value = suggestions[idx].name;
+                        clearAutocomplete();
+                        fetchAndDisplayResults(suggestions[idx].name);
+                    }
+                }
+
+                function fetchSuggestions(query) {
+                    if (!query.trim()) {
+                        clearAutocomplete();
+                        return;
+                    }
+                    fetch(`/api/recipes/search?query=${encodeURIComponent(query)}`)
+                        .then(r => r.ok ? r.json() : [])
+                        .then(data => {
+                            suggestions = data || [];
+                            selectedIndex = -1;
+                            showAutocomplete(suggestions.slice(0, 7));
+                        })
+                        .catch(() => clearAutocomplete());
+                }
+
+                function fetchAndDisplayResults(query) {
+                    if (!query.trim()) {
+                        resultsContainer.innerHTML = '';
+                        return;
+                    }
+                    resultsContainer.innerHTML = '<div style="text-align:center; color:#667eea; padding:20px;">Searching...</div>';
+                    fetch(`/api/recipes/search?query=${encodeURIComponent(query)}`)
+                        .then(r => r.ok ? r.json() : [])
+                        .then(data => {
+                            if (!data || !data.length) {
+                                resultsContainer.innerHTML = '<div style="text-align:center; color:#dc3545; padding:20px;">No recipes found.</div>';
+                                return;
+                            }
+                            resultsContainer.innerHTML = renderResults(data);
+                        })
+                        .catch(() => {
+                            resultsContainer.innerHTML = '<div style="text-align:center; color:#dc3545; padding:20px;">Error fetching results.</div>';
+                        });
+                }
+
+                function renderResults(recipes) {
+                    return `<div class=\"features\" style=\"margin-top:0;\">` +
+                        recipes.map(recipe => `
+                            <div class=\"feature-card\" style=\"min-height:180px;\">
+                                <h3 style=\"margin-bottom:8px;\">${escapeHtml(recipe.name)}</h3>
+                                <p style=\"margin-bottom:6px;\">${escapeHtml(recipe.description || 'No description')}</p>
+                                <span style=\"display:inline-block; margin-right:10px; color:#667eea; font-size:0.95em;\">${escapeHtml(recipe.cuisine || '')}</span>
+                                <span style=\"display:inline-block; color:#4b2991; font-size:0.95em;\">${escapeHtml(recipe.difficulty || '')}</span>
+                            </div>
+                        `).join('') + '</div>';
+                }
+
+                function escapeHtml(str) {
+                    return String(str).replace(/[&<>"']/g, function(m) {
+                        return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'})[m];
+                    });
+                }
+
+                searchInput.addEventListener('input', function(e) {
+                    const query = e.target.value;
+                    lastInputValue = query;
+                    if (debounceTimeout) clearTimeout(debounceTimeout);
+                    debounceTimeout = setTimeout(() => fetchSuggestions(query), 180);
+                });
+
+                searchInput.addEventListener('keydown', function(e) {
+                    if (!suggestions.length) return;
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        selectedIndex = (selectedIndex + 1) % suggestions.length;
+                        highlightSuggestion(selectedIndex);
+                        scrollIntoViewIfNeeded(selectedIndex);
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        selectedIndex = (selectedIndex - 1 + suggestions.length) % suggestions.length;
+                        highlightSuggestion(selectedIndex);
+                        scrollIntoViewIfNeeded(selectedIndex);
+                    } else if (e.key === 'Enter') {
+                        if (selectedIndex >= 0) {
+                            e.preventDefault();
+                            selectSuggestion(selectedIndex);
+                        } else {
+                            fetchAndDisplayResults(searchInput.value);
+                            clearAutocomplete();
+                        }
+                    } else if (e.key === 'Escape') {
+                        clearAutocomplete();
+                    }
+                });
+
+                function scrollIntoViewIfNeeded(idx) {
+                    const items = autocompleteList.children;
+                    if (items[idx]) {
+                        items[idx].scrollIntoView({block: 'nearest'});
+                    }
+                }
+
+                autocompleteList.addEventListener('mousedown', function(e) {
+                    // Prevent blur on input when clicking suggestion
+                    e.preventDefault();
+                });
+
+                document.addEventListener('mousedown', function(e) {
+                    if (!autocompleteList.contains(e.target) && e.target !== searchInput) {
+                        clearAutocomplete();
+                    }
+                });
+
+                searchInput.addEventListener('blur', function() {
+                    setTimeout(clearAutocomplete, 120);
+                });
+
+                searchInput.addEventListener('focus', function() {
+                    if (suggestions.length) showAutocomplete(suggestions.slice(0, 7));
+                });
+
+                searchInput.addEventListener('change', function() {
+                    fetchAndDisplayResults(searchInput.value);
+                });
+
+                // Optionally, submit on Enter if no suggestion is selected
+                searchInput.form && searchInput.form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    fetchAndDisplayResults(searchInput.value);
+                    clearAutocomplete();
+                });
+            })();
+            </script>
         </footer>
     </div>
 </body>
