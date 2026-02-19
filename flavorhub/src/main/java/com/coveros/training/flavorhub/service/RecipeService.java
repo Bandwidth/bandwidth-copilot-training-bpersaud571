@@ -18,25 +18,36 @@ import java.util.Optional;
 public class RecipeService {
     
     private final RecipeRepository recipeRepository;
+    private final RecipeRatingService ratingService;
     
     public List<Recipe> getAllRecipes() {
-        return recipeRepository.findAll();
+        List<Recipe> recipes = recipeRepository.findAll();
+        populateRatingData(recipes);
+        return recipes;
     }
     
     public Optional<Recipe> getRecipeById(Long id) {
-        return recipeRepository.findById(id);
+        Optional<Recipe> recipe = recipeRepository.findById(id);
+        recipe.ifPresent(r -> populateRatingData(r));
+        return recipe;
     }
     
     public List<Recipe> getRecipesByDifficulty(String difficultyLevel) {
-        return recipeRepository.findByDifficultyLevel(difficultyLevel);
+        List<Recipe> recipes = recipeRepository.findByDifficultyLevel(difficultyLevel);
+        populateRatingData(recipes);
+        return recipes;
     }
     
     public List<Recipe> getRecipesByCuisine(String cuisineType) {
-        return recipeRepository.findByCuisineType(cuisineType);
+        List<Recipe> recipes = recipeRepository.findByCuisineType(cuisineType);
+        populateRatingData(recipes);
+        return recipes;
     }
     
     public List<Recipe> searchRecipes(String searchTerm) {
-        return recipeRepository.findByNameContainingIgnoreCase(searchTerm);
+        List<Recipe> recipes = recipeRepository.findByNameContainingIgnoreCase(searchTerm);
+        populateRatingData(recipes);
+        return recipes;
     }
     
     public Recipe saveRecipe(Recipe recipe) {
@@ -57,8 +68,30 @@ public class RecipeService {
         if (allRecipes.isEmpty()) return null;
         int dayOfYear = java.time.LocalDate.now().getDayOfYear();
         int idx = dayOfYear % allRecipes.size();
-        return allRecipes.get(idx);
+        Recipe recipe = allRecipes.get(idx);
+        populateRatingData(recipe);
+        return recipe;
     }
+    
+    /**
+     * Populate rating data for a single recipe
+     */
+    private void populateRatingData(Recipe recipe) {
+        if (recipe != null && ratingService != null) {
+            Double avgRating = ratingService.getAverageRating(recipe.getId());
+            Long count = ratingService.getRatingCount(recipe.getId());
+            recipe.setAverageRating(avgRating);
+            recipe.setRatingCount(count != null ? count.intValue() : 0);
+        }
+    }
+    
+    /**
+     * Populate rating data for multiple recipes
+     */
+    private void populateRatingData(List<Recipe> recipes) {
+        recipes.forEach(this::populateRatingData);
+    }
+    
     /**
      * Find recipes that can be made based on available ingredients in the pantry
      * NOTE: This method is intentionally left incomplete for workshop participants

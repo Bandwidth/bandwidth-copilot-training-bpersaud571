@@ -62,6 +62,12 @@ public class Recipe {
     @Column(name = "image_url")
     private String imageUrl;
     
+    @Transient
+    private Double averageRating;
+    
+    @Transient
+    private Integer ratingCount;
+    
     public Recipe(String name, String description, Integer prepTime, Integer cookTime, 
                   Integer servings, String difficultyLevel, String cuisineType) {
         this.name = name;

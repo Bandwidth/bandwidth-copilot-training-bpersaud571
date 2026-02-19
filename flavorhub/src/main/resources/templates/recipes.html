@@ -225,6 +225,95 @@
         .difficulty.medium { background: #fff3cd; color: #856404; }
         .difficulty.hard { background: #f8d7da; color: #721c24; }
         
+        /* Star rating styles */
+        .recipe-rating {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+        
+        .stars {
+            color: #ffc107;
+            font-size: 1.1em;
+            letter-spacing: 2px;
+        }
+        
+        .rating-text {
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .rating-count {
+            color: #999;
+            font-size: 0.85em;
+        }
+        
+        .interactive-stars {
+            font-size: 1.5em;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .interactive-stars span {
+            display: inline-block;
+            transition: color 0.2s;
+        }
+        
+        .interactive-stars span:hover,
+        .interactive-stars span.hover {
+            color: #ffc107;
+        }
+        
+        .rating-form {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .rating-form.show {
+            display: block;
+        }
+        
+        .rating-form textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .rating-form button {
+            margin-top: 10px;
+            padding: 8px 16px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background 0.3s;
+        }
+        
+        .rating-form button:hover {
+            background: #5568d3;
+        }
+        
+        .rating-form button.cancel {
+            background: #6c757d;
+            margin-left: 10px;
+        }
+        
+        .rating-form button.cancel:hover {
+            background: #5a6268;
+        }
+        
         .recipe-description {
             color: #666;
             margin-bottom: 15px;
@@ -362,6 +451,113 @@
                 div.textContent = text;
                 return div.innerHTML;
             }
+            
+            /**
+             * Render star rating as HTML string
+             */
+            function renderStars(rating) {
+                if (!rating || rating === 0) {
+                    return '☆☆☆☆☆';
+                }
+                
+                const fullStars = Math.floor(rating);
+                const hasHalfStar = (rating - fullStars) >= 0.5;
+                const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+                
+                let stars = '';
+                for (let i = 0; i < fullStars; i++) stars += '★';
+                if (hasHalfStar) stars += '★';
+                for (let i = 0; i < emptyStars; i++) stars += '☆';
+                
+                return stars;
+            }
+            
+            /**
+             * Submit a rating for a recipe
+             */
+            async function submitRating(recipeId, userId, rating, review) {
+                try {
+                    const response = await fetch(`/api/recipes/${recipeId}/ratings`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            userId: userId,
+                            rating: rating,
+                            review: review
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Failed to submit rating');
+                    }
+                    
+                    return await response.json();
+                } catch (error) {
+                    console.error('Error submitting rating:', error);
+                    throw error;
+                }
+            }
+            
+            /**
+             * Handle star click for rating submission
+             */
+            function handleStarClick(recipeId, starValue, card) {
+                const ratingForm = card.querySelector('.rating-form');
+                const selectedRating = card.querySelector('.selected-rating');
+                
+                if (selectedRating) {
+                    selectedRating.textContent = starValue;
+                }
+                
+                ratingForm.classList.add('show');
+            }
+            
+            /**
+             * Cancel rating submission
+             */
+            function cancelRating(card) {
+                const ratingForm = card.querySelector('.rating-form');
+                const reviewTextarea = card.querySelector('.review-textarea');
+                
+                ratingForm.classList.remove('show');
+                if (reviewTextarea) {
+                    reviewTextarea.value = '';
+                }
+            }
+            
+            /**
+             * Confirm rating submission
+             */
+            async function confirmRating(recipeId, card) {
+                const selectedRating = card.querySelector('.selected-rating');
+                const reviewTextarea = card.querySelector('.review-textarea');
+                const submitBtn = card.querySelector('.submit-rating-btn');
+                
+                if (!selectedRating) return;
+                
+                const rating = parseInt(selectedRating.textContent);
+                const review = reviewTextarea ? reviewTextarea.value.trim() : '';
+                const userId = 1; // Using a default user ID for demo purposes
+                
+                try {
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Submitting...';
+                    
+                    await submitRating(recipeId, userId, rating, review);
+                    
+                    // Refresh recipes to show updated rating
+                    await fetchRecipes();
+                    
+                    alert('Rating submitted successfully!');
+                } catch (error) {
+                    alert('Failed to submit rating: ' + error.message);
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit Rating';
+                }
+            }
 
             /**
              * Show loading indicator
@@ -463,12 +659,54 @@
                     
                     const difficultyClass = recipe.difficultyLevel ? recipe.difficultyLevel.toLowerCase() : '';
                     
+                    // Rating display
+                    let ratingHtml = '';
+                    if (recipe.ratingCount && recipe.ratingCount > 0) {
+                        const stars = renderStars(recipe.averageRating);
+                        ratingHtml = `
+                            <div class="recipe-rating">
+                                <span class="stars">${stars}</span>
+                                <span class="rating-text">${recipe.averageRating.toFixed(1)}/5</span>
+                                <span class="rating-count">(${recipe.ratingCount} rating${recipe.ratingCount !== 1 ? 's' : ''})</span>
+                            </div>
+                        `;
+                    } else {
+                        ratingHtml = `
+                            <div class="recipe-rating">
+                                <span class="rating-text" style="color: #999;">No ratings yet</span>
+                            </div>
+                        `;
+                    }
+                    
+                    // Interactive star rating for submission
+                    const interactiveStars = `
+                        <div style="margin-top: 10px;">
+                            <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">Rate this recipe:</div>
+                            <div class="interactive-stars" data-recipe-id="${recipe.id}">
+                                <span data-value="1">☆</span>
+                                <span data-value="2">☆</span>
+                                <span data-value="3">☆</span>
+                                <span data-value="4">☆</span>
+                                <span data-value="5">☆</span>
+                            </div>
+                            <div class="rating-form">
+                                <div>Your rating: <span class="selected-rating">0</span> stars</div>
+                                <textarea class="review-textarea" placeholder="Write a review (optional)..."></textarea>
+                                <div>
+                                    <button class="submit-rating-btn" type="button">Submit Rating</button>
+                                    <button class="cancel-rating-btn cancel" type="button">Cancel</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
                     card.innerHTML = `
                         <div class="recipe-header">
                             <h3>${escapeHtml(recipe.name)}</h3>
                             <span class="recipe-cuisine">${escapeHtml(recipe.cuisineType || '')}</span>
                         </div>
                         <div class="recipe-body">
+                            ${ratingHtml}
                             <div class="recipe-meta">
                                 <span>⏱️ ${recipe.prepTime || 0} min prep</span>
                                 <span>🍳 ${recipe.cookTime || 0} min cook</span>
@@ -478,10 +716,47 @@
                                 <span class="servings">🍽️ Serves ${recipe.servings || 0}</span>
                                 <span class="difficulty ${difficultyClass}">${escapeHtml(recipe.difficultyLevel || '')}</span>
                             </div>
+                            ${interactiveStars}
                         </div>
                     `;
                     
                     recipesGrid.appendChild(card);
+                    
+                    // Add event listeners for interactive stars
+                    const starContainer = card.querySelector('.interactive-stars');
+                    const stars = starContainer.querySelectorAll('span');
+                    const submitBtn = card.querySelector('.submit-rating-btn');
+                    const cancelBtn = card.querySelector('.cancel-rating-btn');
+                    
+                    stars.forEach(star => {
+                        star.addEventListener('click', function() {
+                            const value = parseInt(this.getAttribute('data-value'));
+                            handleStarClick(recipe.id, value, card);
+                        });
+                        
+                        star.addEventListener('mouseenter', function() {
+                            const value = parseInt(this.getAttribute('data-value'));
+                            stars.forEach((s, idx) => {
+                                if (idx < value) {
+                                    s.textContent = '★';
+                                } else {
+                                    s.textContent = '☆';
+                                }
+                            });
+                        });
+                    });
+                    
+                    starContainer.addEventListener('mouseleave', function() {
+                        stars.forEach(s => s.textContent = '☆');
+                    });
+                    
+                    submitBtn.addEventListener('click', function() {
+                        confirmRating(recipe.id, card);
+                    });
+                    
+                    cancelBtn.addEventListener('click', function() {
+                        cancelRating(card);
+                    });
                 });
             }
 
