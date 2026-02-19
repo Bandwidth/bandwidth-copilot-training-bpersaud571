@@ -20,9 +20,45 @@ public class RecipeController {
     
     private final RecipeService recipeService;
     
+    /**
+     * Get all recipes with optional filtering by difficulty, cuisine, and search term
+     * @param difficulty optional difficulty level filter (Easy, Medium, Hard)
+     * @param cuisine optional cuisine type filter
+     * @param search optional search term to filter by recipe name
+     * @return list of recipes matching the filters
+     */
     @GetMapping
-    public ResponseEntity<List<Recipe>> getAllRecipes() {
-        return ResponseEntity.ok(recipeService.getAllRecipes());
+    public ResponseEntity<List<Recipe>> getAllRecipes(
+            @RequestParam(required = false) String difficulty,
+            @RequestParam(required = false) String cuisine,
+            @RequestParam(required = false) String search) {
+        
+        List<Recipe> recipes = recipeService.getAllRecipes();
+        
+        // Apply difficulty filter if provided
+        if (difficulty != null && !difficulty.isEmpty()) {
+            recipes = recipes.stream()
+                    .filter(r -> difficulty.equalsIgnoreCase(r.getDifficultyLevel()))
+                    .toList();
+        }
+        
+        // Apply cuisine filter if provided
+        if (cuisine != null && !cuisine.isEmpty()) {
+            recipes = recipes.stream()
+                    .filter(r -> cuisine.equalsIgnoreCase(r.getCuisineType()))
+                    .toList();
+        }
+        
+        // Apply search filter if provided
+        if (search != null && !search.isEmpty()) {
+            final String searchLower = search.toLowerCase();
+            recipes = recipes.stream()
+                    .filter(r -> r.getName().toLowerCase().contains(searchLower) ||
+                                (r.getDescription() != null && r.getDescription().toLowerCase().contains(searchLower)))
+                    .toList();
+        }
+        
+        return ResponseEntity.ok(recipes);
     }
     
     @GetMapping("/{id}")

@@ -4,9 +4,49 @@ These instructions guide GitHub Copilot when working within the FlavorHub projec
 
 ## Project Context
 
-This is a Spring Boot application for managing recipes and pantry ingredients, used as a training application for the GitHub Copilot Advanced Workshop. The application features a Java backend with REST APIs and a web frontend using Thymeleaf templates.
+FlavorHub is a Spring Boot 3.2.0 application (Java 21) for managing recipes and pantry ingredients, used as a training application for the GitHub Copilot Advanced Workshop. The application demonstrates a three-tier architecture (Controller → Service → Repository) with REST APIs and a Thymeleaf-based web frontend.
 
-## Code Style and Standards
+### Repository Structure
+- `flavorhub/` - Main Spring Boot application
+- `labs/` - Workshop exercises and lab instructions
+- `docs/` - Workshop documentation and guides
+- `.github/copilot-instructions.md` - These instructions
+
+### Key Architectural Decisions
+- **H2 in-memory database** for development/testing (no external DB setup required)
+- **DataLoader component** ([config/DataLoader.java](flavorhub/src/main/java/com/coveros/training/flavorhub/config/DataLoader.java)) populates sample data on startup
+- **Intentional incompleteness**: Many features have `// TODO` comments for workshop participants to implement using Copilot
+- **Contract-first testing**: Tests may exist before implementation (e.g., [UserMealPlanServiceTest.java](flavorhub/src/test/java/com/coveros/training/flavorhub/service/UserMealPlanServiceTest.java))
+
+### Domain Model
+Core entities: `Recipe`, `Ingredient`, `RecipeIngredient`, `UserPantry`
+- Recipes have ingredients, instructions, difficulty levels, cuisine types
+- UserPantry tracks ingredient quantities for recommendation features
+
+## Essential Developer Workflows
+
+### Building and Running
+```bash
+cd flavorhub
+./mvnw clean install              # Build and run tests
+./mvnw spring-boot:run            # Run application (port 8080)
+./mvnw test                        # Run tests only
+```
+On Windows, use `mvnw.cmd` instead of `./mvnw`
+
+### Debugging and Database Access
+- **H2 Console**: Access at [http://localhost:8080/h2-console](http://localhost:8080/h2-console) while app is running
+  - JDBC URL: `jdbc:h2:mem:recipedb`
+  - Username: `sa`
+  - Password: (leave blank)
+- **SQL logging**: Enabled by default in [application.properties](flavorhub/src/main/resources/application.properties) for debugging
+
+### Key Endpoints
+- Web UI: `http://localhost:8080/` (home), `/recipes` (recipe browser)
+- REST API: `/api/recipes`, `/api/ingredients`, `/api/pantry`
+- API examples in [RecipeController.java](flavorhub/src/main/java/com/coveros/training/flavorhub/controller/RecipeController.java)
+
+
 
 ### Java Coding Standards
 - Follow standard Java naming conventions (camelCase for methods/variables, PascalCase for classes)

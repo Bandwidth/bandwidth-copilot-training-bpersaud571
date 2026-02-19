@@ -241,9 +241,134 @@
     </div>
     
     <script>
-        // TODO: Add JavaScript to fetch and display recipes from API
-        // TODO: Implement filtering functionality
-        // TODO: Add search functionality
+        // Fetch and display recipes from API with filtering and search
+        (function() {
+            const recipesGrid = document.getElementById('recipesGrid');
+            const difficultyFilter = document.getElementById('difficulty');
+            const cuisineFilter = document.getElementById('cuisine');
+            const searchInput = document.getElementById('search');
+            let searchDebounce = null;
+
+            /**
+             * Escape HTML to prevent XSS attacks
+             */
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            /**
+             * Build query string from current filter values
+             */
+            function buildQueryString() {
+                const params = new URLSearchParams();
+                
+                if (difficultyFilter.value) {
+                    params.append('difficulty', difficultyFilter.value);
+                }
+                
+                if (cuisineFilter.value) {
+                    params.append('cuisine', cuisineFilter.value);
+                }
+                
+                if (searchInput.value.trim()) {
+                    params.append('search', searchInput.value.trim());
+                }
+                
+                const queryString = params.toString();
+                return queryString ? '?' + queryString : '';
+            }
+
+            /**
+             * Render recipes to the grid
+             */
+            function renderRecipes(recipes) {
+                recipesGrid.innerHTML = '';
+                
+                if (!recipes || recipes.length === 0) {
+                    recipesGrid.innerHTML = `
+                        <div class="no-recipes">
+                            <h2>No Recipes Found</h2>
+                            <p>Try adjusting your filters or check back later!</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                recipes.forEach(recipe => {
+                    const card = document.createElement('div');
+                    card.className = 'recipe-card';
+                    
+                    const difficultyClass = recipe.difficultyLevel ? recipe.difficultyLevel.toLowerCase() : '';
+                    
+                    card.innerHTML = `
+                        <div class="recipe-header">
+                            <h3>${escapeHtml(recipe.name)}</h3>
+                            <span class="recipe-cuisine">${escapeHtml(recipe.cuisineType || '')}</span>
+                        </div>
+                        <div class="recipe-body">
+                            <div class="recipe-meta">
+                                <span>⏱️ ${recipe.prepTime || 0} min prep</span>
+                                <span>🍳 ${recipe.cookTime || 0} min cook</span>
+                            </div>
+                            <div class="recipe-description">${escapeHtml(recipe.description || '')}</div>
+                            <div class="recipe-footer">
+                                <span class="servings">🍽️ Serves ${recipe.servings || 0}</span>
+                                <span class="difficulty ${difficultyClass}">${escapeHtml(recipe.difficultyLevel || '')}</span>
+                            </div>
+                        </div>
+                    `;
+                    
+                    recipesGrid.appendChild(card);
+                });
+            }
+
+            /**
+             * Fetch recipes from API
+             */
+            async function fetchRecipes() {
+                try {
+                    recipesGrid.innerHTML = `
+                        <div class="no-recipes">
+                            <h2>Loading...</h2>
+                            <p>Fetching delicious recipes...</p>
+                        </div>
+                    `;
+                    
+                    const response = await fetch('/api/recipes' + buildQueryString());
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch recipes');
+                    }
+                    
+                    const recipes = await response.json();
+                    renderRecipes(recipes);
+                    
+                } catch (error) {
+                    console.error('Error fetching recipes:', error);
+                    recipesGrid.innerHTML = `
+                        <div class="no-recipes">
+                            <h2>Error Loading Recipes</h2>
+                            <p>${escapeHtml(error.message)}</p>
+                        </div>
+                    `;
+                }
+            }
+
+            // Add event listeners for filters
+            difficultyFilter.addEventListener('change', fetchRecipes);
+            cuisineFilter.addEventListener('change', fetchRecipes);
+            
+            // Debounce search input to avoid too many API calls
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchDebounce);
+                searchDebounce = setTimeout(fetchRecipes, 300);
+            });
+
+            // Initial load
+            fetchRecipes();
+        })();
     </script>
 </body>
 </html>
