@@ -314,6 +314,54 @@
             background: #5a6268;
         }
         
+        /* Toast notification styles */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px 20px;
+            border-radius: 5px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+            max-width: 350px;
+        }
+        
+        .toast.success {
+            border-left: 4px solid #28a745;
+        }
+        
+        .toast.error {
+            border-left: 4px solid #dc3545;
+        }
+        
+        .toast.info {
+            border-left: 4px solid #667eea;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+        
         .recipe-description {
             color: #666;
             margin-bottom: 15px;
@@ -453,6 +501,21 @@
             }
             
             /**
+             * Show toast notification
+             */
+            function showToast(message, type = 'info') {
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                toast.textContent = message;
+                document.body.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.style.animation = 'slideOut 0.3s ease-out';
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            }
+            
+            /**
              * Render star rating as HTML string
              */
             function renderStars(rating) {
@@ -540,7 +603,10 @@
                 
                 const rating = parseInt(selectedRating.textContent);
                 const review = reviewTextarea ? reviewTextarea.value.trim() : '';
-                const userId = 1; // Using a default user ID for demo purposes
+                
+                // SECURITY NOTE: Using hardcoded userId for demo purposes only.
+                // In production, this should come from authenticated user session.
+                const userId = 1;
                 
                 try {
                     submitBtn.disabled = true;
@@ -551,9 +617,9 @@
                     // Refresh recipes to show updated rating
                     await fetchRecipes();
                     
-                    alert('Rating submitted successfully!');
+                    showToast('Rating submitted successfully!', 'success');
                 } catch (error) {
-                    alert('Failed to submit rating: ' + error.message);
+                    showToast('Failed to submit rating: ' + error.message, 'error');
                     submitBtn.disabled = false;
                     submitBtn.textContent = 'Submit Rating';
                 }
