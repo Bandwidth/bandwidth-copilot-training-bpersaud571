@@ -7,6 +7,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Loads sample data into the database on application startup
@@ -19,12 +20,14 @@ public class DataLoader implements CommandLineRunner {
     private final IngredientRepository ingredientRepository;
     private final RecipeRepository recipeRepository;
     private final UserPantryRepository userPantryRepository;
+    private final RecipeRatingRepository recipeRatingRepository;
     
     @Override
     public void run(String... args) {
         loadIngredients();
         loadRecipes();
         loadSamplePantry();
+        loadRatings();
     }
     
     private void loadIngredients() {
@@ -578,5 +581,61 @@ public class DataLoader implements CommandLineRunner {
         ingredientRepository.findByNameIgnoreCase("Sugar").ifPresent(ingredient ->
             userPantryRepository.save(new UserPantry(userId, ingredient, 3.0, "cups"))
         );
+    }
+    
+    /**
+     * Load sample ratings for recipes
+     * Creates 20-30 sample ratings across different recipes with varied star ratings and reviews
+     */
+    private void loadRatings() {
+        List<Recipe> allRecipes = recipeRepository.findAll();
+        if (allRecipes.isEmpty()) {
+            return; // No recipes to rate
+        }
+        
+        // Create ratings for the first few recipes
+        int recipesToRate = Math.min(10, allRecipes.size());
+        
+        for (int i = 0; i < recipesToRate; i++) {
+            Recipe recipe = allRecipes.get(i);
+            
+            // Each recipe gets 2-5 ratings from different users
+            int numRatings = 2 + (i % 4);
+            
+            for (int userId = 1; userId <= numRatings; userId++) {
+                RecipeRating rating = new RecipeRating();
+                rating.setRecipe(recipe);
+                rating.setUserId((long) userId);
+                
+                // Vary ratings from 1-5 stars with more high ratings
+                int starRating = ((userId + i) % 5) + 1;
+                if (starRating >= 3) {
+                    starRating = Math.min(5, starRating + 1); // Bias towards higher ratings
+                }
+                rating.setRating(starRating);
+                
+                // Add review text for some ratings
+                if (userId % 2 == 0) {
+                    String review = getReviewText(starRating, recipe.getName());
+                    rating.setReview(review);
+                }
+                
+                recipeRatingRepository.save(rating);
+            }
+        }
+    }
+    
+    /**
+     * Generate sample review text based on rating
+     */
+    private String getReviewText(int rating, String recipeName) {
+        return switch (rating) {
+            case 5 -> "Absolutely delicious! " + recipeName + " is now my favorite recipe. Will make again!";
+            case 4 -> "Very good recipe. " + recipeName + " turned out great with minor adjustments.";
+            case 3 -> "Decent recipe. " + recipeName + " was okay but nothing special.";
+            case 2 -> "Not impressed. " + recipeName + " needs improvement.";
+            case 1 -> "Didn't work out well. " + recipeName + " was disappointing.";
+            default -> "No comment.";
+        };
     }
 }
