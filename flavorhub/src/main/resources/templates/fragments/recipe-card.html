@@ -148,6 +148,31 @@
                 color: #721c24; 
             }
             
+            /* Star rating styles */
+            .recipe-rating {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 10px;
+                font-size: 0.9em;
+            }
+            
+            .stars {
+                color: #ffc107;
+                font-size: 1.1em;
+                letter-spacing: 2px;
+            }
+            
+            .rating-text {
+                color: #666;
+                font-weight: 500;
+            }
+            
+            .rating-count {
+                color: #999;
+                font-size: 0.85em;
+            }
+            
             /* Colorful cuisine badges */
             .cuisine-badge {
                 display: inline-block;
@@ -244,6 +269,16 @@
         
         <!-- Recipe Body -->
         <div class="recipe-card-body">
+            <!-- Rating Display -->
+            <div class="recipe-rating" th:if="${recipe.ratingCount != null and recipe.ratingCount > 0}">
+                <span class="stars" th:utext="${@ratingHelper.renderStars(recipe.averageRating)}">★★★★☆</span>
+                <span class="rating-text" th:text="${#numbers.formatDecimal(recipe.averageRating, 1, 1)} + '/5'">4.5/5</span>
+                <span class="rating-count" th:text="'(' + ${recipe.ratingCount} + ' rating' + (${recipe.ratingCount} != 1 ? 's' : '') + ')'">(42 ratings)</span>
+            </div>
+            <div class="recipe-rating" th:unless="${recipe.ratingCount != null and recipe.ratingCount > 0}">
+                <span class="rating-text" style="color: #999;">No ratings yet</span>
+            </div>
+            
             <!-- Preparation and Cook Time Metadata -->
             <div class="recipe-card-meta">
                 <span th:attr="aria-label='Preparation time: ' + ${recipe.prepTime} + ' minutes'">

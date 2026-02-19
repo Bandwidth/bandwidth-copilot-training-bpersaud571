@@ -28,6 +28,9 @@ class RecipeServiceTest {
 
     @Mock
     private RecipeRepository recipeRepository;
+    
+    @Mock
+    private RecipeRatingService ratingService;
 
     @InjectMocks
     private RecipeService recipeService;
@@ -67,6 +70,10 @@ class RecipeServiceTest {
         testRecipe3.setServings(6);
         testRecipe3.setDifficultyLevel("Easy");
         testRecipe3.setCuisineType("Italian");
+        
+        // Mock rating service to return default values (lenient to avoid unnecessary stubbing errors)
+        lenient().when(ratingService.getAverageRating(any())).thenReturn(4.5);
+        lenient().when(ratingService.getRatingCount(any())).thenReturn(10L);
     }
 
     // =====================================================
