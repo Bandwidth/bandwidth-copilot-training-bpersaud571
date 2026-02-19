@@ -77,7 +77,7 @@ public class RecipeService {
      * Populate rating data for a single recipe
      */
     private void populateRatingData(Recipe recipe) {
-        if (recipe != null) {
+        if (recipe != null && ratingService != null) {
             Double avgRating = ratingService.getAverageRating(recipe.getId());
             Long count = ratingService.getRatingCount(recipe.getId());
             recipe.setAverageRating(avgRating);
