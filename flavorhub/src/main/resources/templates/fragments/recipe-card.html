@@ -107,6 +107,7 @@
                 text-overflow: ellipsis;
                 display: -webkit-box;
                 -webkit-line-clamp: 3;
+                line-clamp: 3;
                 -webkit-box-orient: vertical;
             }
             
@@ -147,21 +148,60 @@
                 color: #721c24; 
             }
             
+            /* Colorful cuisine badges */
+            .cuisine-badge {
+                display: inline-block;
+                padding: 6px 14px;
+                border-radius: 20px;
+                font-size: 0.9em;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+                transition: transform 0.2s, box-shadow 0.2s;
+            }
+            
+            .cuisine-badge:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 10px rgba(0,0,0,0.18);
+            }
+            
+            /* Cuisine-specific colors */
+            .cuisine-italian { background: linear-gradient(135deg, #00c853 0%, #64dd17 100%); color: white; }
+            .cuisine-mexican { background: linear-gradient(135deg, #ff6f00 0%, #ff9100 100%); color: white; }
+            .cuisine-chinese { background: linear-gradient(135deg, #d50000 0%, #ff1744 100%); color: white; }
+            .cuisine-japanese { background: linear-gradient(135deg, #e91e63 0%, #f50057 100%); color: white; }
+            .cuisine-indian { background: linear-gradient(135deg, #ff6f00 0%, #ffa726 100%); color: white; }
+            .cuisine-thai { background: linear-gradient(135deg, #aa00ff 0%, #d500f9 100%); color: white; }
+            .cuisine-french { background: linear-gradient(135deg, #304ffe 0%, #536dfe 100%); color: white; }
+            .cuisine-greek { background: linear-gradient(135deg, #00b8d4 0%, #00e5ff 100%); color: white; }
+            .cuisine-american { background: linear-gradient(135deg, #c62828 0%, #ef5350 100%); color: white; }
+            .cuisine-mediterranean { background: linear-gradient(135deg, #00897b 0%, #26a69a 100%); color: white; }
+            .cuisine-korean { background: linear-gradient(135deg, #6a1b9a 0%, #8e24aa 100%); color: white; }
+            .cuisine-vietnamese { background: linear-gradient(135deg, #f57c00 0%, #fb8c00 100%); color: white; }
+            .cuisine-middle { background: linear-gradient(135deg, #d84315 0%, #f4511e 100%); color: white; }
+            .cuisine-spanish { background: linear-gradient(135deg, #fdd835 0%, #ffeb3b 100%); color: #333; }
+            .cuisine-default { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+            
             .recipe-card-view-link {
-                padding: 8px 16px;
-                background: #667eea;
+                padding: 10px 20px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 color: white;
                 text-decoration: none;
-                border-radius: 5px;
-                transition: background 0.3s;
+                border-radius: 25px;
+                transition: all 0.3s ease;
                 display: inline-block;
                 margin-top: 10px;
                 width: 100%;
                 text-align: center;
+                font-weight: 600;
+                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
             }
             
             .recipe-card-view-link:hover {
-                background: #5568d3;
+                background: linear-gradient(135deg, #5568d3 0%, #6a3d94 100%);
+                transform: translateY(-2px);
+                box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
             }
             
             /* Responsive adjustments */
@@ -194,9 +234,12 @@
         <!-- Recipe Header -->
         <div class="recipe-card-header">
             <h3 th:text="${recipe.name}">Recipe Name</h3>
-            <span class="recipe-card-cuisine" 
+            <span class="cuisine-badge" 
                   th:if="${recipe.cuisineType != null and !recipe.cuisineType.isEmpty()}"
+                  th:classappend="${'cuisine-' + #strings.toLowerCase(#strings.replace(recipe.cuisineType, ' ', '-'))}"
                   th:text="${recipe.cuisineType}">Cuisine Type</span>
+            <span class="cuisine-badge cuisine-default" 
+                  th:unless="${recipe.cuisineType != null and !recipe.cuisineType.isEmpty()}">Unknown</span>
         </div>
         
         <!-- Recipe Body -->
